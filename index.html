@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloorManager Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow: hidden; }
+        .tab-active { border-top: 3px solid #f59e0b; background: white; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .animate-blink { animation: blink 1s infinite; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        @media print {
+            body { overflow: visible !important; height: auto !important; background: white !important; }
+            #root > div > aside, 
+            #root > div > main > div:first-child,
+            .print\:hidden { display: none !important; }
+            #root > div > main { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            .print\:visible { display: block !important; }
+            table { border-collapse: collapse !important; width: 100% !important; }
+            th, td { border: 1px solid #e2e8f0 !important; padding: 8px !important; }
+            .no-scrollbar { overflow: visible !important; }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "zustand": "https://esm.sh/zustand@^5.0.11",
+    "react-hot-toast": "https://esm.sh/react-hot-toast@^2.6.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
+    "clsx": "https://esm.sh/clsx@^2.1.1",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0",
+    "tailwind-merge": "https://esm.sh/tailwind-merge@^3.4.1",
+    "date-fns/": "https://esm.sh/date-fns@^4.1.0/",
+    "xlsx": "https://esm.sh/xlsx@0.18.5"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-gray-100 h-screen overflow-hidden">
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "name": "FloorManager Pro (1C Style)",
+  "description": "A comprehensive standalone flooring store management application with 1C-inspired UI, SQLite storage, PDF/Excel exports, and real-time analytics.",
+  "requestFramePermissions": []
+}
