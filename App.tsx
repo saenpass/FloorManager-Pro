@@ -12,6 +12,11 @@ import { Positions } from './pages/Positions';
 import { Debtors } from './pages/Debtors';
 import { Settings } from './pages/Settings';
 import { Analytics } from './pages/Analytics';
+import { Reports } from './reports/Reports';
+import { InvoicePrint } from './reports/InvoicePrint';
+import { Reconciliation } from './reports/Reconciliation';
+import { RevenueReport } from './reports/RevenueReport';
+import { DiscountsReport } from './reports/DiscountsReport';
 import { Calculator } from './pages/Calculator';
 import { useStore } from './store';
 import { db } from './db';
@@ -176,6 +181,11 @@ const App: React.FC = () => {
       case 'debtors': return <Debtors />;
       case 'settings': return <Settings />;
       case 'analytics': return <Analytics />;
+      case 'reports': return <Reports />;
+      case 'invoice-print': return <InvoicePrint orderId={activeTab.params?.orderId} />;
+      case 'reconciliation': return <Reconciliation />;
+      case 'revenue-report': return <RevenueReport />;
+      case 'discounts-report': return <DiscountsReport />;
       case 'calculator': return <Calculator />;
       default: return (
         <div className="flex flex-col items-center justify-center h-full text-gray-400">
