@@ -78,6 +78,8 @@ const DEFAULT_DB: StorageSchema = {
         categories: 'edit',
         debtors: 'edit',
         analytics: 'edit',
+        calculator: 'edit',
+        reports: 'edit',
         settings: 'edit'
       }
     }

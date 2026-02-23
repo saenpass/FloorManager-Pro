@@ -30,6 +30,28 @@ export const OrderList = () => {
   const [clearConfirmStep, setClearConfirmStep] = useState<0 | 1 | 2>(0);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Delete single order modal
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState<0 | 1 | 2>(0);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; invoice?: string | null; client?: string | null } | null>(null);
+
+  const openDeleteModal = (order: any) => {
+    setDeleteTarget({ id: order.id, invoice: order.invoice_number, client: order.client_name });
+    setDeleteConfirmStep(1);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteConfirmStep(0);
+    setDeleteTarget(null);
+  };
+
+  const executeDeleteOrder = () => {
+    if (!deleteTarget) return;
+    db.deleteOrder(deleteTarget.id);
+    window.dispatchEvent(new Event('storage'));
+    toast.success("Заказ удалён");
+    closeDeleteModal();
+  };
+
   const statuses = useMemo(() => db.getCargoStatuses(), []);
   const allRawOrders = useMemo(() => db.getOrders(), []);
   
@@ -78,6 +100,8 @@ export const OrderList = () => {
       // Sheet 1: Orders Summary
       const ordersData = filteredAndSortedOrders.map(o => {
         const total = o.items?.reduce((acc, i) => acc + parseFloat(i.total_price), 0) || 0;
+        const totalWithoutDiscount = o.items?.reduce((acc, i) => acc + (parseFloat(i.price) * i.quantity), 0) || 0;
+        const discountAmount = totalWithoutDiscount - total;
         return {
           'ID': o.id,
           'Номер': o.invoice_number,
@@ -86,6 +110,8 @@ export const OrderList = () => {
           'Телефон': o.client_phone,
           'Адрес': o.delivery_address,
           'Статус': statuses.find(s => s.id === o.cargo_status_id)?.name || '...',
+          'Сумма без скидки': totalWithoutDiscount,
+          'Скидка': discountAmount,
           'Сумма заказа': total,
           'Предоплата': parseFloat(o.prepayment),
           'Долг': total - parseFloat(o.prepayment),
@@ -226,50 +252,99 @@ export const OrderList = () => {
         <table className="w-full text-left text-sm border-collapse">
           <thead className="bg-gray-50 text-gray-400 font-bold border-b text-[10px] uppercase tracking-widest sticky top-0 z-10">
             <tr>
-              <th className="px-6 py-4 cursor-pointer" onClick={() => handleSort('id')}>ID {sortField === 'id' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
-              <th className="px-6 py-4 cursor-pointer" onClick={() => handleSort('client_name')}>Клиент {sortField === 'client_name' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
-              <th className="px-6 py-4 cursor-pointer" onClick={() => handleSort('order_date')}>Дата {sortField === 'order_date' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+              <th className="px-6 py-4 cursor-pointer" onClick={() => handleSort('id')}>
+                ID {sortField === 'id' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="px-6 py-4 cursor-pointer" onClick={() => handleSort('client_name')}>
+                Клиент {sortField === 'client_name' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="px-6 py-4 cursor-pointer" onClick={() => handleSort('order_date')}>
+                Дата {sortField === 'order_date' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th className="px-6 py-4">Статус</th>
               <th className="px-6 py-4 text-right">Оплачено</th>
-              <th className="px-6 py-4 text-right cursor-pointer" onClick={() => handleSort('total')}>Сумма {sortField === 'total' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+              <th className="px-6 py-4 text-right">Скидка</th>
+              <th className="px-6 py-4 text-right cursor-pointer" onClick={() => handleSort('total')}>
+                Сумма {sortField === 'total' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th className="px-6 py-4 text-right">Действия</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-gray-50">
             {paginatedOrders.map((order) => {
               const total = order.items?.reduce((acc, i) => acc + parseFloat(i.total_price), 0) || 0;
+              const totalWithoutDiscount = order.items?.reduce((acc, i) => acc + (parseFloat(i.price) * i.quantity), 0) || 0;
+              const discountAmount = totalWithoutDiscount - total;
               const prepayment = parseFloat(order.prepayment || '0');
               const status = statuses.find(s => s.id === order.cargo_status_id);
+
               return (
                 <tr key={order.id} className="hover:bg-blue-50/30 transition-colors group">
-                  <td className="px-6 py-4 font-mono font-bold text-blue-900">{order.invoice_number || order.id}</td>
+                  <td className="px-6 py-4 font-mono font-bold text-blue-900">
+                    {order.invoice_number || order.id}
+                  </td>
+
                   <td className="px-6 py-4">
                     <div className="font-bold text-gray-900">{order.client_name}</div>
                     <div className="text-[10px] text-gray-400">{order.client_phone}</div>
                   </td>
-                  <td className="px-6 py-4 text-gray-500 font-medium">{format(new Date(order.order_date), 'dd.MM.yyyy')}</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase" style={{ backgroundColor: status?.color + '20', color: status?.color }}>{status?.name}</span>
+
+                  <td className="px-6 py-4 text-gray-500 font-medium">
+                    {format(new Date(order.order_date), 'dd.MM.yyyy')}
                   </td>
+
+                  <td className="px-6 py-4">
+                    <span
+                      className="px-2 py-0.5 rounded text-[10px] font-black uppercase"
+                      style={{ backgroundColor: status?.color + '20', color: status?.color }}
+                    >
+                      {status?.name}
+                    </span>
+                  </td>
+
                   <td className="px-6 py-4 text-right">
                     <div className={`font-mono font-bold ${prepayment > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>
                       {prepayment.toFixed(2)}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right font-mono font-black text-blue-950">{total.toFixed(2)}</td>
+
+                  <td className="px-6 py-4 text-right">
+                    <div className={`font-mono font-bold ${discountAmount > 0 ? 'text-red-500' : 'text-gray-300'}`}>
+                      {discountAmount > 0 ? `-${discountAmount.toFixed(2)}` : '0.00'}
+                    </div>
+                  </td>
+
+                  <td className="px-6 py-4 text-right font-mono font-black text-blue-950">
+                    {total.toFixed(2)}
+                  </td>
+
                   <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openTab('order-edit', `${order.invoice_number}`, { orderId: order.id })} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Edit2 size={16} /></button>
-                    <button onClick={() => { if(confirm(t.confirmDelete)) { db.deleteOrder(order.id); window.dispatchEvent(new Event('storage')); }}} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 size={16} /></button>
+                    <button
+                      onClick={() => openTab('order-edit', `${order.invoice_number}`, { orderId: order.id })}
+                      className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => openDeleteModal(order)}
+                      className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
+                      title="Удалить заказ"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+
         {paginatedOrders.length === 0 && (
           <div className="flex flex-col items-center justify-center py-40 text-gray-300">
-             <Trash2 size={64} className="opacity-10 mb-4" />
-             <p className="text-[10px] font-black uppercase tracking-[0.4em]">Список заказов пуст</p>
+            <Trash2 size={64} className="opacity-10 mb-4" />
+            <p className="text-[10px] font-black uppercase tracking-[0.4em]">Список заказов пуст</p>
           </div>
         )}
       </div>
@@ -292,34 +367,56 @@ export const OrderList = () => {
       {/* CLEAR CONFIRMATION MODALS */}
       {clearConfirmStep > 0 && (
         <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-red-950/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setClearConfirmStep(0)} />
-          
+          <div
+            className="absolute inset-0 bg-red-950/40 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => setClearConfirmStep(0)}
+          />
+
           {clearConfirmStep === 1 && (
             <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-4 border-orange-100">
-               <div className="p-8 text-center space-y-6">
-                  <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
-                    <AlertTriangle size={40} />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Очистка журнала</h3>
-                    <p className="text-sm text-gray-500 mt-2 font-medium">Вы собираетесь удалить ВСЕ заказы. Рекомендуем сначала скачать резервную копию.</p>
-                  </div>
-                  <div className="space-y-3">
-                    <button 
-                      onClick={() => { exportBackupJSON(); setClearConfirmStep(2); }}
-                      className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-blue-700 transition-all uppercase text-[10px] tracking-widest shadow-xl shadow-blue-200"
-                    >
-                      <Download size={18} /> Скачать бэкап и продолжить
-                    </button>
-                    <button 
-                      onClick={() => setClearConfirmStep(2)}
-                      className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-bold hover:bg-red-50 hover:text-red-600 transition-all uppercase text-[10px] tracking-widest"
-                    >
-                      Продолжить без бэкапа
-                    </button>
-                  </div>
-                  <button onClick={() => setClearConfirmStep(0)} className="text-[10px] font-black uppercase text-gray-300 tracking-widest hover:text-blue-600">Отмена</button>
-               </div>
+              <div className="p-8 text-center space-y-6">
+                <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                  <AlertTriangle size={40} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
+                    Очистка журнала
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-2 font-medium">
+                    Вы собираетесь удалить ВСЕ заказы. Рекомендуем сначала скачать резервную копию.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => { exportBackupJSON(); setClearConfirmStep(2); }}
+                    className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-blue-700 transition-all uppercase text-[10px] tracking-widest shadow-xl shadow-blue-200"
+                  >
+                    <Download size={18} /> Скачать бэкап и продолжить
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const step2 = confirm(
+                        `⚠️ ВНИМАНИЕ!\n\n` +
+                        `Вы продолжаете БЕЗ резервной копии.\n` +
+                        `После очистки восстановить данные будет невозможно.\n\n` +
+                        `Точно продолжить без бэкапа?`
+                      );
+                      if (!step2) return;
+                      setClearConfirmStep(2);
+                    }}
+                    className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-bold hover:bg-red-50 hover:text-red-600 transition-all uppercase text-[10px] tracking-widest"
+                  >
+                    Продолжить без бэкапа
+                  </button>
+                </div>
+                <button
+                  onClick={() => setClearConfirmStep(0)}
+                  className="text-[10px] font-black uppercase text-gray-300 tracking-widest hover:text-blue-600"
+                >
+                  Отмена
+                </button>
+              </div>
             </div>
           )}
 
@@ -327,18 +424,133 @@ export const OrderList = () => {
             <div className="relative bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-8 border-red-600">
               <div className="p-10 bg-red-600 text-white flex flex-col items-center text-center space-y-6">
                 <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
-                   <Skull size={48} className="text-white" />
+                  <Skull size={48} className="text-white" />
                 </div>
-                <h3 className="text-3xl font-black uppercase tracking-tighter italic">ПОДТВЕРДИТЕ!</h3>
-                <p className="text-[11px] font-bold uppercase opacity-80 leading-relaxed">Это действие необратимо. Все заказы и их история будут стерты навсегда.</p>
+                <h3 className="text-3xl font-black uppercase tracking-tighter italic">
+                  ПОДТВЕРДИТЕ!
+                </h3>
+                <p className="text-[11px] font-bold uppercase opacity-80 leading-relaxed">
+                  ЭТО ДЕЙСТВИЕ НЕВОЗМОЖНО ОТМЕНИТЬ. ВСЕ ЗАКАЗЫ, СОСТАВЫ, СУММЫ И ИСТОРИЯ БУДУТ УНИЧТОЖЕНЫ НАВСЕГДА.
+                  ЕСЛИ ВЫ НЕ СКАЧАЛИ БЭКАП — ВЫ ПОТЕРЯЕТЕ ДАННЫЕ.
+                </p>
               </div>
               <div className="p-8 bg-gray-50 border-t flex gap-3">
-                <button onClick={() => setClearConfirmStep(0)} className="flex-1 py-4 bg-white border-2 border-gray-200 text-gray-600 rounded-2xl font-black hover:bg-gray-100 transition-all uppercase text-[10px] tracking-widest">Назад</button>
-                <button 
+                <button
+                  onClick={() => setClearConfirmStep(0)}
+                  className="flex-1 py-4 bg-white border-2 border-gray-200 text-gray-600 rounded-2xl font-black hover:bg-gray-100 transition-all uppercase text-[10px] tracking-widest"
+                >
+                  Назад
+                </button>
+                <button
                   onClick={executeFullClear}
                   className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-red-400 hover:bg-red-700 transition-all uppercase text-[10px] tracking-widest animate-blink"
                 >
                   ДА, УДАЛИТЬ ВСЁ
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* DELETE SINGLE ORDER MODALS (MUST BE OUTSIDE clearConfirmStep block) */}
+      {deleteConfirmStep > 0 && deleteTarget && (
+        <div className="fixed inset-0 z-[5002] flex items-center justify-center p-4">
+          <div
+            className={`absolute inset-0 backdrop-blur-sm animate-in fade-in duration-300 ${
+              deleteConfirmStep === 2 ? 'bg-red-950/55' : 'bg-gray-950/35'
+            }`}
+            onClick={closeDeleteModal}
+          />
+
+          {/* STEP 1 — мягкое предупреждение */}
+          {deleteConfirmStep === 1 && (
+            <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-4 border-orange-100">
+              <div className="p-8 text-center space-y-6">
+                <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                  <AlertTriangle size={40} />
+                </div>
+
+                <div>
+                  <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
+                    Удаление заказа
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-2 font-medium">
+                    Вы собираетесь удалить заказ{" "}
+                    <span className="font-black text-gray-900">
+                      {deleteTarget.invoice_number || deleteTarget.id}
+                    </span>
+                    {deleteTarget.client_name ? (
+                      <>
+                        {" "}клиента{" "}
+                        <span className="font-black text-gray-900">{deleteTarget.client_name}</span>.
+                      </>
+                    ) : (
+                      "."
+                    )}
+                    {" "}Если вы не уверены — нажмите «Отмена».
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setDeleteConfirmStep(2)}
+                    className="w-full py-4 bg-red-50 text-red-700 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-red-100 transition-all uppercase text-[10px] tracking-widest border border-red-100"
+                  >
+                    <ShieldAlert size={18} /> Перейти к подтверждению
+                  </button>
+
+                  <button
+                    onClick={closeDeleteModal}
+                    className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-bold hover:bg-gray-100 transition-all uppercase text-[10px] tracking-widest"
+                  >
+                    Отмена
+                  </button>
+                </div>
+
+                <button
+                  onClick={closeDeleteModal}
+                  className="text-[10px] font-black uppercase text-gray-300 tracking-widest hover:text-blue-600"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2 — максимально строгий экран */}
+          {deleteConfirmStep === 2 && (
+            <div className="relative bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-8 border-red-600">
+              <div className="p-10 bg-red-600 text-white flex flex-col items-center text-center space-y-6">
+                <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+                  <Skull size={48} className="text-white" />
+                </div>
+
+                <h3 className="text-3xl font-black uppercase tracking-tighter italic">
+                  ПОДТВЕРДИТЕ!
+                </h3>
+
+                <p className="text-[11px] font-bold uppercase opacity-80 leading-relaxed">
+                  ЭТО ДЕЙСТВИЕ НЕВОЗМОЖНО ОТМЕНИТЬ.
+                  {" "}ВЫ УДАЛЯЕТЕ ЗАКАЗ{" "}
+                  {deleteTarget.invoice_number || deleteTarget.id}.
+                  {" "}ДАННЫЕ (СОСТАВ, СУММЫ, ИСТОРИЯ) БУДУТ УНИЧТОЖЕНЫ НАВСЕГДА.
+                </p>
+              </div>
+
+              <div className="p-8 bg-gray-50 border-t flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmStep(1)}
+                  className="flex-1 py-4 bg-white border-2 border-gray-200 text-gray-600 rounded-2xl font-black hover:bg-gray-100 transition-all uppercase text-[10px] tracking-widest"
+                >
+                  Назад
+                </button>
+
+                <button
+                  onClick={executeDeleteOrder}
+                  className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-red-400 hover:bg-red-700 transition-all uppercase text-[10px] tracking-widest animate-blink"
+                >
+                  ДА, УДАЛИТЬ
                 </button>
               </div>
             </div>
