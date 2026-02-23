@@ -77,6 +77,8 @@ export interface UserPermissions {
   categories: 'view' | 'edit' | 'none';
   debtors: 'view' | 'edit' | 'none';
   analytics: 'view' | 'edit' | 'none';
+  calculator: 'view' | 'edit' | 'none'; 
+  reports: 'view' | 'edit' | 'none';  
   settings: 'view' | 'edit' | 'none';
 }
 
@@ -88,7 +90,22 @@ export interface User {
   permissions: UserPermissions;
 }
 
-export type TabType = 'dashboard' | 'orders' | 'order-create' | 'order-edit' | 'positions' | 'categories' | 'debtors' | 'analytics' | 'calculator' | 'settings';
+export type TabType =
+  | 'dashboard'
+  | 'orders'
+  | 'order-create'
+  | 'order-edit'
+  | 'positions'
+  | 'categories'
+  | 'debtors'
+  | 'analytics'
+  | 'calculator'
+  | 'reports'          // ✅ центр отчётов
+  | 'invoice-print'    // ✅ печать накладной
+  | 'reconciliation'   // ✅ акт сверки
+  | 'revenue-report'   // ✅ выручка
+  | 'discounts-report' // ✅ скидки
+  | 'settings';
 
 export interface AppTab {
   id: string;

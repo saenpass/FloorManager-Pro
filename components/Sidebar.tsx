@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { LayoutDashboard, ShoppingCart, PlusCircle, Package, Layers, Users, PieChart, Calculator, Settings, LogOut, Languages, Download, X, Check } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, PlusCircle, Package, Layers, Users, PieChart, Calculator, Settings, LogOut, Languages, Download , FileText, X, Check } from 'lucide-react';
 import { useStore } from '../store';
 import { db } from '../db';
 import { TabType } from '../types';
@@ -73,6 +73,7 @@ export const Sidebar = () => {
         <SidebarItem icon={Layers} label={t.categories} type="categories" />
         <SidebarItem icon={Users} label={t.debtors} type="debtors" />
         <SidebarItem icon={PieChart} label={t.analytics} type="analytics" />
+        <SidebarItem icon={FileText} label="Отчёты" type="reports" />
         <SidebarItem icon={Calculator} label={t.calculator} type="calculator" />
       </nav>
 

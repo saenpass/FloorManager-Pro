@@ -15,16 +15,68 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
         @media print {
-            body { overflow: visible !important; height: auto !important; background: white !important; }
-            #root > div > aside, 
-            #root > div > main > div:first-child,
-            .print\:hidden { display: none !important; }
-            #root > div > main { width: 100% !important; margin: 0 !important; padding: 0 !important; }
-            .print\:visible { display: block !important; }
-            table { border-collapse: collapse !important; width: 100% !important; }
-            th, td { border: 1px solid #e2e8f0 !important; padding: 8px !important; }
-            .no-scrollbar { overflow: visible !important; }
+        body { overflow: visible !important; height: auto !important; background: white !important; }
+
+        #root > div > aside,
+        #root > div > main > div:first-child,
+        .print\:hidden { display: none !important; }
+
+        #root > div > main { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+        .print\:visible { display: block !important; }
+
+        table { border-collapse: collapse !important; width: 100% !important; }
+        th, td { border: 1px solid #e2e8f0 !important; padding: 8px !important; }
+        .no-scrollbar { overflow: visible !important; }
+
+        /* =========================
+            FIX: печать всех должников
+            ========================= */
+
+        /* 1) В печати НЕЛЬЗЯ оставлять overflow-auto вокруг таблицы */
+        .print-table-wrap {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
         }
+
+        /* 2) Sticky ломает разбиение на страницы */
+        .sticky, [class*="sticky"] {
+            position: static !important;
+            top: auto !important;
+        }
+
+        /* 3) Нормальная пагинация таблицы */
+        thead { display: table-header-group !important; }
+        tfoot { display: table-footer-group !important; }
+
+        tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+        }
+
+        /* 4) Чтобы печать не была "обрезана" flex-контейнерами */
+        #root, #root > div, #root > div > main {
+            height: auto !important;
+            min-height: 0 !important;
+        }
+        .flex, .flex-col {
+            height: auto !important;
+            min-height: 0 !important;
+        }
+
+        /* 5) Если всё равно слишком много строк на страницу — уплотняем только для печати */
+        th, td {
+            padding: 6px !important;     /* было 8 */
+            font-size: 11px !important;  /* компактнее */
+            line-height: 1.25 !important;
+        }
+
+        /* (опционально) поля страницы */
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+    }
     </style>
 <script type="importmap">
 {
